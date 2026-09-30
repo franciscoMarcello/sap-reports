@@ -99,6 +99,18 @@ class ReportUploadValidator(private val props: ReportProperties) {
         if (def.nome.isBlank()) {
             p += Problema("nome", Regra.SCHEMA_INVALIDO, "O campo 'nome' e obrigatorio.")
         }
+        def.pastaNormalizada()?.let { pasta ->
+            if (pasta.length > MAX_TAMANHO_PASTA) {
+                p += Problema("pasta", Regra.LIMITE_EXCEDIDO,
+                    "A 'pasta' tem ${pasta.length} caracteres e o limite e $MAX_TAMANHO_PASTA.")
+            }
+            if ('/' in pasta) {
+                p += Problema("pasta", Regra.SCHEMA_INVALIDO, "A 'pasta' tem um nivel so: nao use '/'.")
+            }
+            if (pasta.any { it.isISOControl() }) {
+                p += Problema("pasta", Regra.SCHEMA_INVALIDO, "A 'pasta' tem caractere de controle.")
+            }
+        }
         if (def.papeis.isEmpty()) {
             p += Problema("papeis", Regra.SCHEMA_INVALIDO,
                 "Informe ao menos um papel - sem isso ninguem enxerga o relatorio.")
@@ -325,6 +337,7 @@ class ReportUploadValidator(private val props: ReportProperties) {
         val TIPOS_NUMERICOS = setOf("numero", "moeda", "percentual")
         const val MAX_NIVEIS_GRUPO = 3
         const val MAX_RESUMOS = 5
+        const val MAX_TAMANHO_PASTA = 100
         val HELPERS_FORMATACAO = listOf("moeda", "data", "numero", "percentual")
     }
 }

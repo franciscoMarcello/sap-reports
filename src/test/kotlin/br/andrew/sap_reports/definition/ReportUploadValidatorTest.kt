@@ -202,6 +202,38 @@ class ReportUploadValidatorTest {
         assertTrue(Regra.SCHEMA_INVALIDO in regras(comTypo))
     }
 
+    private fun comPasta(valor: String) = definicao().replace("nome: Vendas\n", "nome: Vendas\npasta: $valor\n")
+
+    @Test
+    fun `aceita pasta de um nivel e definicao sem pasta`() {
+        assertTrue(regras(comPasta("Vendas")).isEmpty())
+        assertTrue(regras(comPasta("'Contas a receber'")).isEmpty())
+        assertTrue(regras(definicao()).isEmpty())
+    }
+
+    @Test
+    fun `pasta em branco e aceita e cai em sem pasta`() {
+        assertTrue(regras(comPasta("'   '")).isEmpty())
+        assertEquals(null, ReportDefinition(pasta = "   ").pastaNormalizada())
+        assertEquals("Vendas", ReportDefinition(pasta = "  Vendas ").pastaNormalizada())
+    }
+
+    @Test
+    fun `recusa pasta com barra - so existe um nivel`() {
+        assertEquals(setOf(Regra.SCHEMA_INVALIDO), regras(comPasta("Vendas/Comercial")))
+    }
+
+    @Test
+    fun `recusa pasta acima do limite de caracteres`() {
+        assertEquals(setOf(Regra.LIMITE_EXCEDIDO), regras(comPasta("A".repeat(101))))
+        assertTrue(regras(comPasta("A".repeat(100))).isEmpty())
+    }
+
+    @Test
+    fun `recusa pasta com caractere de controle`() {
+        assertEquals(setOf(Regra.SCHEMA_INVALIDO), regras(comPasta("\"Vendas\\tX\"")))
+    }
+
     @Test
     fun `aceita definicao sem id - o banco gera o numero`() {
         assertTrue(regras(definicao().replace("id: vendas\n", "")).isEmpty())

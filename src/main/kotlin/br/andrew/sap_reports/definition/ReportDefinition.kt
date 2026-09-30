@@ -16,6 +16,8 @@ data class ReportDefinition(
     val id: String? = null,
     val nome: String = "",
     val descricao: String? = null,
+    /** Pasta em que o relatorio aparece na listagem. Um nivel so; vazio cai em "Sem pasta". */
+    val pasta: String? = null,
     val papeis: List<String> = emptyList(),
     val parametros: List<Parametro> = emptyList(),
     val consulta: Consulta = Consulta(),
@@ -25,7 +27,10 @@ data class ReportDefinition(
     val agrupar: List<String> = emptyList(),
     /** Cortes independentes do agrupamento principal (ex.: total por vendedor somando todas as filiais). */
     val resumos: List<Resumo> = emptyList(),
-)
+) {
+    /** `pasta` sem espacos nas pontas; em branco vira `null`. E o valor que vai para o banco e para a API. */
+    fun pastaNormalizada(): String? = pasta?.trim()?.takeIf { it.isNotEmpty() }
+}
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class Resumo(

@@ -85,6 +85,7 @@ Campos desconhecidos são **recusados** — erro de digitação não passa em si
 ```yaml
 nome: Vendas por cliente         # título exibido; não precisa ser único
 descricao: Total faturado por cliente no período    # opcional
+pasta: Vendas                    # opcional; pasta na listagem, um nível (sem '/'), até 100 caracteres
 papeis: [vendedor, admin]       # quem enxerga; ao menos um
 parametros:
   - nome: dataInicio            # precisa casar com :dataInicio no SQL
