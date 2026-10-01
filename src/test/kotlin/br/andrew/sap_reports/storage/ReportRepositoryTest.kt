@@ -61,6 +61,13 @@ class ReportRepositoryTest {
     }
 
     @Test
+    fun `pasta de dois niveis e gravada normalizada`() {
+        val (repository, _) = repositorioDeTeste()
+        val id = repository.criar(def.copy(pasta = " Financeiro / Contas a pagar "), "fonte", "template", "ana").id
+        assertEquals("Financeiro/Contas a pagar", repository.buscar(id)!!.pasta)
+    }
+
+    @Test
     fun `relatorio sem pasta fica com pasta nula`() {
         val (repository, _) = repositorioDeTeste()
         val id = repository.criar(def, "fonte", "template", "ana").id

@@ -16,7 +16,10 @@ data class ReportDefinition(
     val id: String? = null,
     val nome: String = "",
     val descricao: String? = null,
-    /** Pasta em que o relatorio aparece na listagem. Um nivel so; vazio cai em "Sem pasta". */
+    /**
+     * Pasta em que o relatorio aparece na listagem: `Area` ou `Area/Assunto` (ate 2 niveis,
+     * separados por `/`). Vazio cai em "Sem pasta".
+     */
     val pasta: String? = null,
     val papeis: List<String> = emptyList(),
     val parametros: List<Parametro> = emptyList(),
@@ -28,8 +31,14 @@ data class ReportDefinition(
     /** Cortes independentes do agrupamento principal (ex.: total por vendedor somando todas as filiais). */
     val resumos: List<Resumo> = emptyList(),
 ) {
-    /** `pasta` sem espacos nas pontas; em branco vira `null`. E o valor que vai para o banco e para a API. */
-    fun pastaNormalizada(): String? = pasta?.trim()?.takeIf { it.isNotEmpty() }
+    /**
+     * `pasta` sem espacos nas pontas nem em volta de cada `/`; em branco vira `null`. E o valor que vai
+     * para o banco e para a API. Niveis vazios (`A//B`, `A/`) NAO somem aqui: o validador os recusa.
+     */
+    fun pastaNormalizada(): String? {
+        val limpa = pasta?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return limpa.split('/').joinToString("/") { it.trim() }
+    }
 }
 
 @JsonIgnoreProperties(ignoreUnknown = false)

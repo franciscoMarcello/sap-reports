@@ -66,6 +66,17 @@ class ReportServiceTest {
     }
 
     @Test
+    fun `pasta de dois niveis chega inteira nas listagens`() {
+        val (repository, _) = repositorioDeTeste()
+        val service = ReportService(repository, ReportUploadValidator(ReportProperties()), DefinitionParser())
+        val id = service.criar(upload("pasta: 'Financeiro / Contas a pagar'"), "autor").id
+        service.publicar(id, 1, "autor")
+
+        assertEquals("Financeiro/Contas a pagar", service.listarAdmin().single { it.id == id }.pasta)
+        assertEquals("Financeiro/Contas a pagar", service.listarPublicados(setOf("vendedor")).single { it.id == id }.pasta)
+    }
+
+    @Test
     fun `relatorio sem pasta volta com pasta nula`() {
         val (repository, _) = repositorioDeTeste()
         val service = ReportService(repository, ReportUploadValidator(ReportProperties()), DefinitionParser())

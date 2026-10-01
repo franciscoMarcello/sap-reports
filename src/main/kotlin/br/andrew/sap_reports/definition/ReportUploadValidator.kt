@@ -104,10 +104,17 @@ class ReportUploadValidator(private val props: ReportProperties) {
                 p += Problema("pasta", Regra.LIMITE_EXCEDIDO,
                     "A 'pasta' tem ${pasta.length} caracteres e o limite e $MAX_TAMANHO_PASTA.")
             }
-            if ('/' in pasta) {
-                p += Problema("pasta", Regra.SCHEMA_INVALIDO, "A 'pasta' tem um nivel so: nao use '/'.")
+            val niveis = pasta.split('/')
+            if (niveis.any { it.isEmpty() }) {
+                p += Problema("pasta", Regra.SCHEMA_INVALIDO,
+                    "A 'pasta' tem um nivel vazio (barra no inicio, no fim ou duas seguidas).")
+            } else if (niveis.size > MAX_NIVEIS_PASTA) {
+                p += Problema("pasta", Regra.LIMITE_EXCEDIDO,
+                    "A 'pasta' tem ${niveis.size} niveis e o maximo e $MAX_NIVEIS_PASTA (ex.: Financeiro/Contas a pagar).")
             }
-            if (pasta.any { it.isISOControl() }) {
+            // Confere o valor ORIGINAL (so sem as pontas): o trim de cada nivel, em pastaNormalizada,
+            // engoliria um controle colado a barra ("A/\tB" viraria "A/B" sem aviso).
+            if (def.pasta.orEmpty().trim().any { it.isISOControl() }) {
                 p += Problema("pasta", Regra.SCHEMA_INVALIDO, "A 'pasta' tem caractere de controle.")
             }
         }
@@ -338,6 +345,7 @@ class ReportUploadValidator(private val props: ReportProperties) {
         const val MAX_NIVEIS_GRUPO = 3
         const val MAX_RESUMOS = 5
         const val MAX_TAMANHO_PASTA = 100
+        const val MAX_NIVEIS_PASTA = 2
         val HELPERS_FORMATACAO = listOf("moeda", "data", "numero", "percentual")
     }
 }

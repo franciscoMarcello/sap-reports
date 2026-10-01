@@ -1,4 +1,4 @@
-# Pasta do relatorio na listagem (um nivel). Vem do campo `pasta` do YAML e e
+# Pasta do relatorio na listagem (Area ou Area/Assunto, ate 2 niveis). Vem do campo `pasta` do YAML e e
 # copiada para a coluna a cada versao, como ja acontece com NOME e DESCRICAO.
 #
 # Nula nos relatorios existentes: nenhum deles declara `pasta` ainda, entao
