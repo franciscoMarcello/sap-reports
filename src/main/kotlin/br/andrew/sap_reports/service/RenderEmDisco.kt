@@ -8,6 +8,7 @@ import br.andrew.sap_reports.render.AgregadoEmFluxo
 import br.andrew.sap_reports.render.Agrupamento
 import br.andrew.sap_reports.render.CsvRenderer
 import br.andrew.sap_reports.render.HtmlRenderer
+import br.andrew.sap_reports.render.Graficos
 import br.andrew.sap_reports.render.PdfRenderer
 import br.andrew.sap_reports.render.ResultadoEmDisco
 import br.andrew.sap_reports.web.RelatorioDesordenadoException
@@ -57,6 +58,7 @@ class RenderEmDisco(
         try {
             val disco = ResultadoEmDisco(diretorio)
             val agregado = AgregadoEmFluxo(def)
+            val graficos = Graficos(if (tipo == Formato.PDF) def else def.copy(graficos = emptyList()))
             disco.use {
                 val fim = odbc.consultarFluxo(
                     def.consulta.sql, params, limite,
@@ -64,6 +66,7 @@ class RenderEmDisco(
                     aoLer = { linha ->
                         disco.gravar(linha)
                         agregado.somar(linha)
+                        graficos.somar(linha)
                     },
                 )
                 if (fim.truncated) throw ResultadoTruncadoException(limite)
@@ -75,7 +78,7 @@ class RenderEmDisco(
             log.info("Relatorio '{}' em disco: {} linhas, formato {}", def.nome, disco.quantidade, tipo)
             val arquivo = when (tipo) {
                 Formato.CSV -> csv(def, disco, agregado, diretorio)
-                else -> pdf(def, template, params, logo, disco, agregado, diretorio)
+                else -> pdf(def, template, params, logo, disco, agregado, diretorio, graficos.imagens())
             }
             return SaidaRenderizada.deArquivo(arquivo, tipo.contentType(), tipo.yaml, diretorio).also { entregue = true }
         } finally {
@@ -105,6 +108,7 @@ class RenderEmDisco(
     private fun pdf(
         def: ReportDefinition, template: String, params: Map<String, Any?>, logo: String?,
         disco: ResultadoEmDisco, agregado: AgregadoEmFluxo, diretorio: Path,
+        graficos: Map<String, com.github.jknack.handlebars.Handlebars.SafeString>,
     ): Path {
         val preparado = htmlRenderer.preparar(template, def)
         val geradoEm = LocalDateTime.now()
@@ -115,7 +119,7 @@ class RenderEmDisco(
         fun emitir(ultimo: Boolean) {
             val parte = diretorio.resolve("parte-%06d.pdf".format(partes.size + 1))
             val html = htmlRenderer.renderizarBloco(
-                preparado, def, bloco, inicio, partes.size + 1, ultimo, agregado, params, logo, geradoEm,
+                preparado, def, bloco, inicio, partes.size + 1, ultimo, agregado, params, logo, geradoEm, graficos,
             )
             Files.newOutputStream(parte).buffered().use { pdfRenderer.renderizar(html, it) }
             partes.add(parte)

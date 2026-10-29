@@ -71,6 +71,7 @@ class ReportUploadValidator(private val props: ReportProperties) {
         }
 
         problemas += validarCampos(def)
+        problemas += GraficosRules.validar(def, template)
         problemas += TemplateRules.validar(template)
         problemas += compilaTemplate(template)
 
@@ -261,6 +262,18 @@ class ReportUploadValidator(private val props: ReportProperties) {
                     "O sap-odbc recusa parametro sobrando.")
         }
         return p
+    }
+
+    /** Mesmas regras de SQL e allowlist na autoria e na exploracao MCP. */
+    fun validarConsulta(sql: String, params: Map<String, Any?>): ResultadoValidacao {
+        val (problemas, tabelas) = validarSql(ReportDefinition(consulta = Consulta(sql)))
+        val p = problemas.toMutableList()
+        val nomes = SqlRules.parametros(sql)
+        if (nomes != params.keys) {
+            p += Problema("params", Regra.SCHEMA_INVALIDO,
+                "Parametros ausentes: ${nomes - params.keys}; nao usados: ${params.keys - nomes}.")
+        }
+        return ResultadoValidacao(p, tabelas, nomes.toList())
     }
 
     private fun validarSql(def: ReportDefinition): Pair<List<Problema>, List<String>> {

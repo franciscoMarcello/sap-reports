@@ -25,6 +25,10 @@ RUN rm -f build/libs/*-plain.jar && \
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# O renderizador de graficos usa Java2D em modo headless, mas ainda precisa de fontes.
+RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core && \
+    rm -rf /var/lib/apt/lists/*
+
 # Usuario sem privilegio: a aplicacao nao precisa de root.
 RUN groupadd -r spring && useradd -r -g spring spring
 
@@ -39,4 +43,4 @@ EXPOSE 8080
 
 # Credenciais entram por variavel de ambiente, nunca na imagem:
 #   docker run -e SAP_JDBC_URL=... -e SAP_DB_USER=... -e SAP_DB_PASSWORD=... -e API_KEY=...
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java", "-Djava.awt.headless=true", "-XX:MaxRAMPercentage=75", "org.springframework.boot.loader.launch.JarLauncher"]

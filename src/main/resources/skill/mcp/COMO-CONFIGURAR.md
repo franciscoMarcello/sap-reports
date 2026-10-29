@@ -45,6 +45,8 @@ estiver exposto na internet — vale o mesmo alerta de `chatgpt/COMO-CONFIGURAR.
 | `guia` | formato do YAML/template e regras do validador — chamar uma vez |
 | `schema` | JSON Schema da definição |
 | `listar_exemplos` | exemplos prontos (definição + template) |
+| `descrever_tabela` | nomes, tipos e nulabilidade das colunas, sem ler registros |
+| `explorar_sql` | SELECT de exploração antes de salvar, com metadados e amostra limitada |
 | `validar_relatorio` | valida **sem gravar**, devolve todos os problemas |
 | `criar_relatorio` | cria rascunho (versão 1) |
 | `atualizar_relatorio` | nova versão, como rascunho |
@@ -54,6 +56,9 @@ estiver exposto na internet — vale o mesmo alerta de `chatgpt/COMO-CONFIGURAR.
 
 **Publicar, rollback e remover não são ferramentas.** A IA prepara o rascunho;
 uma pessoa confere e publica pela tela.
+
+O `guia` inclui a configuracao de graficos no YAML e no template, gerados como
+PNG pelo backend para HTML/PDF. Consulte tambem `GRAFICOS-E-EXPLORACAO.md`.
 
 ## Testar sem cliente
 

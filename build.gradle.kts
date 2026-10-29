@@ -37,6 +37,11 @@ dependencies {
 	// HTML -> PDF. LGPL, sem a clausula de rede da AGPL do iText.
 	implementation("io.github.openhtmltopdf:openhtmltopdf-core:1.1.22")
 	implementation("io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.22")
+	// Graficos raster locais, sem JavaScript, navegador ou servico externo.
+	implementation("org.knowm.xchart:xchart:3.8.8") {
+		exclude(group = "de.erichseifert.vectorgraphics2d")
+		exclude(group = "de.rototor.pdfbox")
+	}
 
 	// Sanitizacao do HTML enviado (allowlist de tags/atributos).
 	implementation("com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20240325.1")

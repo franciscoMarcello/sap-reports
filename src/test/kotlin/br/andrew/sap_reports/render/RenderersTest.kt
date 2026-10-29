@@ -156,7 +156,8 @@ class RenderersTest {
     fun `pdf do scaffold nao imprime o css como texto`() {
         // Prova ponta a ponta: template real do exemplo, render HTML, PDF, e
         // extracao do texto do PDF gerado.
-        val template = java.io.File("../report-skill/exemplos/vendas-por-cliente.hbs").readText()
+        val template = org.springframework.core.io.ClassPathResource("skill/claude/exemplos/vendas-por-cliente.hbs")
+            .inputStream.bufferedReader().use { it.readText() }
         val def = br.andrew.sap_reports.definition.ReportDefinition(nome = "Vendas")
         val resposta = br.andrew.sap_reports.odbc.QueryResponse(
             columns = emptyList(),

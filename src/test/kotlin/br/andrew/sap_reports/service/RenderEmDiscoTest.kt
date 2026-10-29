@@ -144,6 +144,36 @@ class RenderEmDiscoTest {
     }
 
     @Test
+    fun `grafico do PDF em blocos inclui todas as linhas mas aparece uma unica vez`() {
+        fluxo(linhas)
+        val d = def().copy(graficos = listOf(br.andrew.sap_reports.definition.Grafico(
+            "vendas", categoria = "VENDEDOR", valor = "TOTAL",
+        )))
+        val template = """{{#if graficos.vendas}}<img src="{{graficos.vendas}}" />{{/if}}
+            <p>Bloco {{meta.bloco}}</p>{{#each linhas}}<p>{{CLIENTE}}</p>{{/each}}"""
+        val esperado = br.andrew.sap_reports.render.Graficos.gerar(d, linhas).getValue("vendas").toString()
+        val png = java.util.Base64.getDecoder().decode(esperado.substringAfter(','))
+        val imagemEsperada = javax.imageio.ImageIO.read(png.inputStream())
+        gerador().gerar(d, template, Formato.PDF, emptyMap(), null).use { saida ->
+            val bytes = ByteArrayOutputStream().also { saida.escreverEm(it) }.toByteArray()
+            Loader.loadPDF(bytes).use { pdf ->
+                assertTrue(pdf.numberOfPages > 1)
+                val imagens = pdf.pages.flatMap { page -> page.resources.xObjectNames.mapNotNull {
+                    page.resources.getXObject(it) as? org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+                } }
+                assertEquals(1, imagens.size)
+                val recebida = imagens.single().image
+                assertEquals(imagemEsperada.width, recebida.width)
+                assertContentEquals(
+                    imagemEsperada.getRGB(0, 0, recebida.width, recebida.height, null, 0, recebida.width),
+                    recebida.getRGB(0, 0, recebida.width, recebida.height, null, 0, recebida.width),
+                )
+            }
+        }
+        assertEquals(emptyList(), temporariosRestantes())
+    }
+
+    @Test
     fun `grande com grupo fora de ordem e recusado e limpa o temporario`() {
         // Ana, Bia, Ana...: consulta sem ORDER BY VENDEDOR
         fluxo(listOf(linhas[0], linhas[5], linhas[1], linhas[2], linhas[6], linhas[3], linhas[4]))

@@ -1,0 +1,21 @@
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: sans-serif; font-size: 10pt; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px; border-bottom: 1px solid #ddd; }
+  .numero { text-align: right; }
+</style>
+<h1>{{meta.nome}}</h1>
+<p>{{meta.periodo}}</p>
+{{#if graficos.faturamento}}
+  <img src="{{graficos.faturamento}}" alt="Faturamento por filial" style="width: 100%;" />
+{{/if}}
+<table>
+  <thead><tr><th>Filial</th><th class="numero">Faturamento</th></tr></thead>
+  <tbody>
+    {{#each linhas}}
+      <tr><td>{{FILIAL}}</td><td class="numero">{{TOTAL}}</td></tr>
+    {{/each}}
+  </tbody>
+  <tfoot><tr><td>Total</td><td class="numero">{{totais.TOTAL}}</td></tr></tfoot>
+</table>

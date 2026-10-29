@@ -35,12 +35,19 @@ class OdbcClient(private val props: OdbcProperties) {
         )
         .build()
 
-    fun consultar(sql: String, params: Map<String, Any?>, maxRows: Int): QueryResponse {
+    fun consultar(sql: String, params: Map<String, Any?>, maxRows: Int): QueryResponse =
+        consultarComTimeout(sql, params, maxRows, props.queryTimeoutSeconds)
+
+    /** Exploracao MCP curta; nunca aumenta o timeout configurado no gateway. */
+    fun explorar(sql: String, params: Map<String, Any?>, maxRows: Int): QueryResponse =
+        consultarComTimeout(sql, params, maxRows, minOf(15, props.queryTimeoutSeconds))
+
+    private fun consultarComTimeout(sql: String, params: Map<String, Any?>, maxRows: Int, timeout: Int): QueryResponse {
         val corpo = QueryRequest(
             sql = sql,
             params = params,
             maxRows = maxRows,
-            timeoutSeconds = props.queryTimeoutSeconds,
+            timeoutSeconds = timeout,
         )
 
         val resposta = try {

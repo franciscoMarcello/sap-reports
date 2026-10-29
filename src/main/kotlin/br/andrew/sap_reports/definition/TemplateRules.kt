@@ -37,13 +37,14 @@ object TemplateRules {
 
     /**
      * Um recurso so pode ser embutido: `data:` literal, ou exatamente `{{meta.logo}}` -
-     * a logo do cliente, que o servidor valida como imagem raster em `data:` antes de
-     * expor ao template (LogoRelatorio). Qualquer outra expressao em `src` segue proibida.
+     * a logo validada (LogoRelatorio), ou `{{graficos.ID}}`, PNG gerado pelo servidor.
+     * Qualquer outra expressao em `src` segue proibida.
      */
     private fun recursoAceito(valor: String) =
-        valor.trim().startsWith("data:", ignoreCase = true) || LOGO.matches(valor)
+        valor.trim().startsWith("data:", ignoreCase = true) || LOGO.matches(valor) || GRAFICO.matches(valor)
 
     private val LOGO = Regex("""^\s*\{\{\s*meta\.logo\s*\}\}\s*$""")
+    private val GRAFICO = Regex("""^\s*\{\{\s*graficos\.[A-Za-z][A-Za-z0-9_]{0,63}\s*\}\}\s*$""")
 
     fun validar(template: String): List<Problema> {
         val problemas = mutableListOf<Problema>()

@@ -30,6 +30,8 @@ data class ReportDefinition(
     val agrupar: List<String> = emptyList(),
     /** Cortes independentes do agrupamento principal (ex.: total por vendedor somando todas as filiais). */
     val resumos: List<Resumo> = emptyList(),
+    /** Imagens geradas sobre os dados brutos; autoria documentada no MCP. */
+    val graficos: List<Grafico> = emptyList(),
 ) {
     /**
      * `pasta` sem espacos nas pontas nem em volta de cada `/`; em branco vira `null`. E o valor que vai
@@ -40,6 +42,20 @@ data class ReportDefinition(
         return limpa.split('/').joinToString("/") { it.trim() }
     }
 }
+
+@JsonIgnoreProperties(ignoreUnknown = false)
+data class Grafico(
+    val id: String = "",
+    val tipo: String = "barras",
+    val titulo: String = "",
+    val categoria: String = "",
+    val valor: String = "",
+    val agregacao: String = "soma",
+    val largura: Int = 800,
+    val altura: Int = 400,
+    /** Coluna de trabalho restante ideal; obrigatoria para burndown. */
+    val valorIdeal: String? = null,
+)
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class Resumo(

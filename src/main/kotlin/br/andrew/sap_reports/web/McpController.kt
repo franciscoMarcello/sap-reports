@@ -4,6 +4,7 @@ import br.andrew.sap_reports.execucao.ExecucaoService
 import br.andrew.sap_reports.execucao.StatusExecucao
 import br.andrew.sap_reports.security.UsuarioAutenticado
 import br.andrew.sap_reports.service.ReportService
+import br.andrew.sap_reports.service.ExploracaoService
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
@@ -52,6 +53,7 @@ class McpController(
     private val execucoes: ExecucaoService,
     private val exemplos: ExemploController,
     private val json: JsonMapper,
+    private val exploracao: ExploracaoService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -77,8 +79,8 @@ class McpController(
     private val ferramentas: List<Ferramenta> = listOf(
         Ferramenta(
             "guia",
-            "Guia de autoria: formato do YAML e do template, regras do validador, agrupamento, " +
-                "limites. Chame UMA vez antes de escrever o primeiro relatorio.",
+            "Guia de autoria: formato do YAML/template, regras, agrupamento, graficos e exploracao SQL. " +
+                "Chame UMA vez antes de escrever o primeiro relatorio.",
         ) { _, _ -> texto(guia) },
         Ferramenta(
             "schema",
@@ -87,7 +89,35 @@ class McpController(
         Ferramenta(
             "listar_exemplos",
             "Exemplos prontos (definicao + template) que passam no validador. Bom ponto de partida.",
-        ) { _, _ -> comoJson(exemplos.listar()) },
+        ) { _, _ -> comoJson(exemplos.listar() + exemploGraficos) },
+        Ferramenta(
+            "explorar_sql",
+            "Executa uma consulta SELECT/WITH de leitura ANTES de salvar relatorio. " +
+                "Devolve colunas com tipos, nulabilidade e amostra limitada. Nao grava nada. " +
+                "Mesma allowlist e gateway dos relatorios; maximo 500 linhas e timeout de ate 15 segundos. " +
+                "Para apenas estrutura, use SELECT * FROM SCHEMA.TABELA WHERE 1 = 0.",
+            mapOf(
+                "sql" to mapOf("type" to "string", "description" to "Consulta unica de leitura, sem comentarios; use :parametro para valores."),
+                "params" to mapOf("type" to "object", "description" to "Valores dos parametros nomeados do SQL."),
+                "maxRows" to mapOf("type" to "integer", "minimum" to 1, "maximum" to 500, "default" to 100),
+            ), listOf("sql"),
+        ) { a, _ ->
+            val params = a?.get("params")?.takeIf { it.isObject }
+                ?.let { json.convertValue(it, object : TypeReference<Map<String, Any?>>() {}) } ?: emptyMap()
+            if (a?.get("params")?.let { !it.isNull && !it.isObject } == true) {
+                throw ArgumentoInvalido("params deve ser um objeto.")
+            }
+            comoJson(exploracao.consultar(textoDe(a, "sql"), params, inteiro(a, "maxRows", false) ?: 100))
+        },
+        Ferramenta(
+            "descrever_tabela",
+            "Consulta os nomes, tipos e nulabilidade das colunas de uma tabela ou view sem ler registros " +
+                "(WHERE 1 = 0). Respeita allowlist e schemas do gateway; nao exige acesso ao catalogo SYS.",
+            mapOf(
+                "schema" to mapOf("type" to "string", "description" to "Nome exato do schema, sem aspas."),
+                "tabela" to mapOf("type" to "string", "description" to "Nome exato da tabela/view, sem aspas. Aceita tabelas SAP @."),
+            ), listOf("schema", "tabela"),
+        ) { a, _ -> comoJson(exploracao.descrever(textoDe(a, "schema"), textoDe(a, "tabela"))) },
         Ferramenta(
             "validar_relatorio",
             "Valida definicao e template SEM gravar e devolve TODOS os problemas de uma vez. " +
@@ -227,6 +257,7 @@ class McpController(
 
     private fun falha(ex: Exception): Any {
         if (ex is ArgumentoInvalido) return ErroDto("parametros_invalidos", ex.message!!)
+        if (ex is IllegalArgumentException) return ErroDto("parametros_invalidos", ex.message ?: "Argumento invalido.")
         if (ex is FalhaDaExecucao) return ErroDto(ex.erro, ex.message!!)
         val conhecido = erroConhecido(ex)
         if (conhecido == null) {
@@ -325,13 +356,21 @@ class McpController(
     private fun recurso(caminho: String) =
         ClassPathResource(caminho).inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
 
+    /** Exemplo exclusivo do MCP; nao entra nos scaffolds da tela/skill. */
+    private val exemploGraficos by lazy {
+        ExemploDto(
+            "vendas-com-grafico", "Faturamento por filial com grafico", "Grafico e tabela usando a mesma consulta.",
+            recurso("skill/mcp/exemplos/vendas-com-grafico.yaml"), recurso("skill/mcp/exemplos/vendas-com-grafico.hbs"),
+        )
+    }
+
     /**
      * O mesmo texto da skill, para as regras terem uma fonte so. A skill fala em
      * rotas HTTP; o cabecalho diz qual ferramenta corresponde a cada uma.
      */
     private val guia: String by lazy {
         val skill = recurso("skill/claude/SKILL.md").replace(Regex("\\A---\\n.*?\\n---\\n", RegexOption.DOT_MATCHES_ALL), "")
-        "$ROTAS_PARA_FERRAMENTAS\n$skill\n\n${recurso("skill/claude/referencia/regras.md")}"
+        "$ROTAS_PARA_FERRAMENTAS\n$skill\n\n${recurso("skill/claude/referencia/regras.md")}\n\n${recurso("skill/mcp/GRAFICOS-E-EXPLORACAO.md")}"
     }
 
     companion object {
@@ -344,7 +383,7 @@ class McpController(
 
         const val INSTRUCOES =
             "Autoria de relatorios do sap-reports (YAML + Handlebars). Ciclo, sempre nesta ordem: " +
-                "guia (uma vez) -> validar_relatorio ate passar -> criar_relatorio ou atualizar_relatorio -> " +
+                "guia (uma vez) -> descrever_tabela/explorar_sql para confirmar os dados -> validar_relatorio ate passar -> criar_relatorio ou atualizar_relatorio -> " +
                 "preview_relatorio em html -> resultado_preview ate concluir. Publicar NAO e uma ferramenta: entregue o id do rascunho " +
                 "para uma pessoa conferir e publicar pela tela."
 

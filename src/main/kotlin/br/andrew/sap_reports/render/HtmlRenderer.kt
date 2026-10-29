@@ -62,6 +62,7 @@ class HtmlRenderer {
         // Calculado sobre os valores BRUTOS; `linhas` ja esta formatado para exibicao.
         val agrupamento = Agrupamento.calcular(definicao, resposta.rows)
         val contexto = mapOf(
+            "graficos" to Graficos.gerar(definicao, resposta.rows),
             "linhas" to linhas,
             "colunas" to definicao.colunas,
             "params" to params,
@@ -125,11 +126,13 @@ class HtmlRenderer {
         params: Map<String, Any?>,
         logo: String?,
         geradoEm: LocalDateTime,
+        graficos: Map<String, Handlebars.SafeString> = emptyMap(),
     ): String {
         val formatadas = formatarLinhas(definicao, linhas)
         val fim = inicio + linhas.size
         val grupos = Agrupamento.calcular(definicao, linhas).grupos
         val contexto = mapOf(
+            "graficos" to if (numero == 1) graficos else emptyMap(),
             "linhas" to formatadas,
             "colunas" to definicao.colunas,
             "params" to params,

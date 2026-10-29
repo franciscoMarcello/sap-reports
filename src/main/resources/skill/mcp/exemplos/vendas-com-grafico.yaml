@@ -1,0 +1,26 @@
+nome: Faturamento por filial com grafico
+descricao: Grafico de barras e tabela sobre o mesmo total por filial no periodo
+papeis: [admin]
+parametros:
+  - {nome: dataInicio, tipo: date, rotulo: Data inicial}
+  - {nome: dataFim, tipo: date, rotulo: Data final}
+consulta:
+  sql: >
+    SELECT T0."BPLId" AS FILIAL, SUM(T0."DocTotal") AS TOTAL
+    FROM SBOGRUPOROVEMA.OINV T0
+    WHERE T0."DocDate" >= :dataInicio AND T0."DocDate" <= :dataFim
+    AND T0."CANCELED" = 'N'
+    GROUP BY T0."BPLId"
+    ORDER BY T0."BPLId"
+  maxRows: 100
+colunas:
+  - {campo: FILIAL, titulo: Filial, tipo: texto}
+  - {campo: TOTAL, titulo: Faturamento, tipo: moeda, total: sum}
+graficos:
+  - id: faturamento
+    tipo: barras
+    titulo: Faturamento por filial
+    categoria: FILIAL
+    valor: TOTAL
+    agregacao: soma
+formatos: [html, pdf, csv]

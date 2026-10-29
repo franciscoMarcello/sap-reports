@@ -51,7 +51,8 @@ class McpControllerTest {
         )
         execucoes = ExecucaoService(store, reports, renderer, ExecucaoProperties(), Clock.systemUTC())
         MockMvcBuilders.standaloneSetup(
-            McpController(reports, execucoes, ExemploController(DefinitionParser()), json),
+            McpController(reports, execucoes, ExemploController(DefinitionParser()), json,
+                br.andrew.sap_reports.service.ExploracaoService(odbc, ReportUploadValidator(properties), json)),
         ).build()
     }
 
@@ -143,7 +144,7 @@ class McpControllerTest {
         val ferramentas = enviar(mapOf("jsonrpc" to "2.0", "id" to 1, "method" to "tools/list"))["result"]["tools"]
         val nomes: List<String> = ferramentas.asIterable().map { it["name"].asString() }
 
-        assertTrue(nomes.containsAll(listOf("guia", "validar_relatorio", "criar_relatorio", "preview_relatorio")))
+        assertTrue(nomes.containsAll(listOf("guia", "validar_relatorio", "criar_relatorio", "preview_relatorio", "explorar_sql", "descrever_tabela")))
         assertTrue(
             nomes.none { n -> listOf("public", "rollback", "remov", "exclu", "token").any { it in n } },
             "publicar e decisao humana: $nomes",
@@ -213,6 +214,31 @@ class McpControllerTest {
         assertTrue("validar_relatorio" in guia)
         assertTrue("Regras que o validador aplica" in guia)
         assertFalse("name: report-skill" in guia)
+        assertTrue("graficos.vendasPorFilial" in guia)
+        assertTrue("explorar_sql" in guia)
+    }
+
+    @Test
+    fun `exemplo de graficos existe apenas no MCP e passa na validacao`() {
+        assertFalse(ExemploController(DefinitionParser()).listar().any { it.id == "vendas-com-grafico" })
+        val lista = json.readTree(chamar("listar_exemplos").textoDoResultado())
+        val exemplo = lista.first { it["id"].asString() == "vendas-com-grafico" }
+        val args = mapOf("definicao" to exemplo["definicao"].asString(), "template" to exemplo["template"].asString())
+        assertFalse(chamar("validar_relatorio", args)["isError"].booleanValue())
+        val id = json.readTree(chamar("criar_relatorio", args).textoDoResultado())["id"].longValue()
+        val relatorio = json.readTree(chamar("obter_relatorio", mapOf("id" to id)).textoDoResultado())
+        assertEquals(args["definicao"], relatorio["definicao"].asString())
+    }
+
+    @Test
+    fun `exploracao invalida volta como erro de ferramenta sem salvar rascunho`() {
+        for (args in listOf(mapOf("sql" to "DELETE FROM X"), mapOf("sql" to "SELECT 1", "maxRows" to 999),
+            mapOf("sql" to "SELECT 1", "params" to "invalido"))) {
+            assertTrue(chamar("explorar_sql", args)["isError"].booleanValue())
+        }
+        val resultado = chamar("descrever_tabela", mapOf("schema" to "SBO", "tabela" to "X; DELETE FROM X"))
+        assertTrue(resultado["isError"].booleanValue())
+        assertEquals(0, json.readTree(chamar("listar_relatorios").textoDoResultado()).size())
     }
 
     @Test
