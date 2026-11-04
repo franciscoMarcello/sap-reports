@@ -1,8 +1,8 @@
 plugins {
 	id("jacoco")
-	kotlin("jvm") version "2.3.21"
-	kotlin("plugin.spring") version "2.3.21"
-	id("org.springframework.boot") version "4.1.1"
+	kotlin("jvm") version "2.4.21"
+	kotlin("plugin.spring") version "2.4.21"
+	id("org.springframework.boot") version "4.1.2"
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -32,38 +32,38 @@ dependencies {
 	// Templates de relatorio. Handlebars e *logic-less*: nao avalia expressao
 	// arbitraria, ao contrario do SpEL do Thymeleaf. Essa e a propriedade que
 	// torna aceitavel receber template por upload, sem revisao humana.
-	implementation("com.github.jknack:handlebars:4.4.0")
+	implementation("com.github.jknack:handlebars:4.5.8")
 
 	// HTML -> PDF. LGPL, sem a clausula de rede da AGPL do iText.
-	implementation("io.github.openhtmltopdf:openhtmltopdf-core:1.1.22")
-	implementation("io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.22")
+	implementation("io.github.openhtmltopdf:openhtmltopdf-core:1.1.105")
+	implementation("io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.105")
 	// Graficos raster locais, sem JavaScript, navegador ou servico externo.
-	implementation("org.knowm.xchart:xchart:3.8.8") {
+	implementation("org.knowm.xchart:xchart:3.9.0") {
 		exclude(group = "de.erichseifert.vectorgraphics2d")
 		exclude(group = "de.rototor.pdfbox")
 	}
 
 	// Sanitizacao do HTML enviado (allowlist de tags/atributos).
-	implementation("com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20240325.1")
+	implementation("com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20261011.1")
 
 	// Mesmo parser do sap-odbc: extrai as tabelas do SQL para conferir a allowlist.
-	implementation("com.github.jsqlparser:jsqlparser:5.3")
+	implementation("com.github.jsqlparser:jsqlparser:5.4")
 
 	// YAML da definicao + JSON Schema que a IA usa como contrato.
 	implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
-	implementation("com.networknt:json-schema-validator:1.5.4")
+	implementation("com.networknt:json-schema-validator:1.5.9")
 
 	// JWT emitido pelo sap-rovema (mesma versao, para o formato bater).
-	implementation("io.jsonwebtoken:jjwt-api:0.12.4")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.4")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.4")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.7")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.7")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.7")
 
 	// Migracoes do schema SAP_REPORTS no HANA.
 	// Boot 4 modularizou as autoconfiguracoes: `liquibase-core` sozinho NAO liga
 	// o Liquibase no startup - falta o modulo que traz LiquibaseAutoConfiguration.
 	implementation("org.springframework.boot:spring-boot-liquibase")
 	implementation("org.liquibase:liquibase-core")
-	runtimeOnly("com.sap.cloud.db.jdbc:ngdbc:2.29.11")
+	runtimeOnly("com.sap.cloud.db.jdbc:ngdbc:2.30.11")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
@@ -72,13 +72,13 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("com.h2database:h2")
 	// Substitui o sap-odbc nos testes de integracao.
-	testImplementation("org.wiremock:wiremock-standalone:3.9.2")
+	testImplementation("org.wiremock:wiremock-standalone:3.13.2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 kotlin {
 	compilerOptions {
-		freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+		freeCompilerArgs.addAll("-Xjsr305=strict")
 	}
 }
 
