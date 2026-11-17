@@ -77,8 +77,10 @@ O `preview` e o `render` recebem os valores dos parâmetros:
 As chaves de `params` correspondem a `parametros[].nome`. Chaves desconhecidas e
 obrigatórios ausentes sem padrão dão 400. Omissão aplica o padrão; opcionais sem padrão usam null.
 
-Cadastros: `filial` e `vendedor` recebem códigos inteiros; `parceiro_negocio`, `item`
-e `localidade` recebem códigos textuais. `multiplo: true` recebe arrays não vazios
+Cadastros: `filial`, `vendedor`, `condicao_pagamento` (`GroupNum`, `-1` = À vista) e
+`grupo_item` (`ItmsGrpCod`) recebem códigos inteiros; `parceiro_negocio`, `item`,
+`localidade`, `fornecedor` (`CardCode`), `conta_contabil` (`AcctCode`), `centro_custo`
+(`PrcCode`) e `deposito` (`WhsCode`) recebem códigos textuais. Todos aceitam `multiplo`. `multiplo: true` recebe arrays não vazios
 (também disponível para `lista`). Exemplo:
 
 ```json

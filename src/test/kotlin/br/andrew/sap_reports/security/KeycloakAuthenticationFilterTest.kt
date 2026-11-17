@@ -22,6 +22,20 @@ class KeycloakAuthenticationFilterTest {
     }
 
     @Test
+    fun `token de servico nao usa a busca de cadastros dos filtros`() {
+        fun status(usuario: UsuarioAutenticado): Int {
+            val request = MockHttpServletRequest("GET", "/api/v1/relatorios/cadastros/item").apply {
+                addHeader("Authorization", "Bearer token-valido")
+            }
+            val response = MockHttpServletResponse()
+            filtro(usuario).doFilter(request, response, MockFilterChain())
+            return response.status
+        }
+        assertEquals(403, status(UsuarioAutenticado("token:gpt", "ana", setOf("admin"), emptySet(), true)))
+        assertEquals(200, status(UsuarioAutenticado("ana", "10", setOf("vendedor"), emptySet())))
+    }
+
+    @Test
     fun `servidor MCP exige autenticacao e papel de autoria, e aceita token de servico`() {
         fun status(usuario: UsuarioAutenticado, comToken: Boolean = true): Int {
             val request = MockHttpServletRequest("POST", "/api/v1/admin/mcp").apply {
