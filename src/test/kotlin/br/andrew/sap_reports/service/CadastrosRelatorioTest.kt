@@ -81,6 +81,37 @@ class CadastrosRelatorioTest {
     }
 
     @Test
+    fun `termo com aspas e curingas vai so no parametro`() {
+        responder()
+        cadastros.buscar("parceiro_negocio", "O'BRIEN_%")
+        servidor.verify(
+            postRequestedFor(urlEqualTo("/api/v1/query"))
+                .withRequestBody(matchingJsonPath("$.sql", equalTo(cadastros.sql("parceiro_negocio"))))
+                .withRequestBody(matchingJsonPath("$.params.termo", equalTo("%O'BRIEN_%%"))),
+        )
+    }
+
+    @Test
+    fun `grupo_item devolve codigo numerico`() {
+        responder("""{"CODIGO":"7","NOME":"RACAO"}""")
+        assertEquals(listOf(ItemCadastro(7, "RACAO")), cadastros.buscar("grupo_item", null))
+    }
+
+    @Test
+    fun `so item manda exato`() {
+        responder()
+        cadastros.buscar("conta_contabil", "PAC001")
+        servidor.verify(
+            postRequestedFor(urlEqualTo("/api/v1/query"))
+                .withRequestBody(not(matchingJsonPath("$.params.exato"))),
+        )
+    }
+
+    @Test
+    fun `item nao usa validFor`() =
+        assertTrue("validFor" !in assertNotNull(cadastros.sql("item")))
+
+    @Test
     fun `cnpj so com digitos vira mascara`() =
         assertEquals("%12.345.678/0001-90%", cadastros.termo("12345678000190"))
 

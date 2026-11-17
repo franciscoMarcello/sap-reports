@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -32,6 +33,19 @@ class ApiExceptionHandler {
     @ExceptionHandler(AcessoRelatorioNegadoException::class)
     fun proibido(ex: AcessoRelatorioNegadoException) =
         ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErroDto("proibido", ex.message!!))
+
+    /** Mantém o status do [ResponseStatusException]; sem isto cairia no 500 do catch-all. */
+    @ExceptionHandler(ResponseStatusException::class)
+    fun comStatus(ex: ResponseStatusException) = ResponseEntity.status(ex.statusCode).body(
+        ErroDto(
+            when (ex.statusCode) {
+                HttpStatus.NOT_FOUND -> "nao_encontrado"
+                HttpStatus.FORBIDDEN -> "proibido"
+                else -> "erro"
+            },
+            ex.reason ?: "Requisicao recusada.",
+        ),
+    )
 
     @ExceptionHandler(ResultadoTruncadoException::class)
     fun truncado(ex: ResultadoTruncadoException) =
