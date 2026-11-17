@@ -219,6 +219,8 @@ class CadastrosRelatorioTest {
     fun `pagina fora da faixa nao consulta`() {
         assertFailsWith<IllegalArgumentException> { cadastros.buscar("item", "x", -1) }
         assertFailsWith<IllegalArgumentException> { cadastros.buscar("item", "x", 201) }
+        assertFailsWith<IllegalArgumentException> { cadastros.sql("item", -1) }
+        assertFailsWith<IllegalArgumentException> { cadastros.sql("item", 201) }
         servidor.verify(0, postRequestedFor(anyUrl()))
     }
 

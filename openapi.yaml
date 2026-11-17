@@ -90,7 +90,7 @@ paths:
 
         50 linhas por pagina, por relevancia: primeiro codigo comecando pelo
         termo, depois nome comecando pelo termo, depois o resto; desempate pelo
-        nome. `q` vazio traz as primeiras 50.
+        nome, depois pelo codigo. `q` vazio traz as primeiras 50.
         CPF/CNPJ (so digitos) busca parceiro/fornecedor, mas nunca volta na
         resposta. `*` no termo e coringa. Item traz so ativos, ou o codigo exato
         mesmo inativo.
@@ -135,7 +135,9 @@ paths:
                     description: |
                       Proxima pagina, RELATIVA a `/api/v1/relatorios/`
                       (`cadastros/{tipo}?q=<q url-encoded>&pagina=<n+1>`);
-                      vazio quando nao ha mais linhas.
+                      vazio quando nao ha mais linhas e tambem na pagina 200
+                      (limite de protecao: no maximo 10.050 linhas; para ir
+                      alem, refine o termo).
               example:
                 content:
                   - { codigo: C001, nome: Fazenda Boa Vista }

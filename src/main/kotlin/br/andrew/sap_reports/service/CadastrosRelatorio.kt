@@ -25,7 +25,6 @@ class CadastrosRelatorio(
 
     /** `null` = tipo desconhecido, sem consulta. [pagina] tem que estar em [PAGINAS]. */
     fun buscar(tipo: String, q: String?, pagina: Int = 0): PaginaBusca? {
-        require(pagina in PAGINAS) { "Pagina fora de $PAGINAS." }
         val consulta = REGISTRO[tipo] ?: return null
         val params = mutableMapOf<String, Any?>("termo" to termo(q), "prefixo" to prefixo(q))
         if (consulta.exato) params["exato"] = q?.trim().orEmpty()
@@ -40,7 +39,9 @@ class CadastrosRelatorio(
 
     internal fun sql(tipo: String, pagina: Int = 0): String? = REGISTRO[tipo]?.let { sql(it, pagina) }
 
+    /** Única checagem de [pagina]: `buscar` monta o SQL antes de consultar, então página inválida nunca chega ao sap-odbc. */
     private fun sql(c: Consulta, pagina: Int): String {
+        require(pagina in PAGINAS) { "Pagina fora de $PAGINAS." }
         val p = properties.schemaCadastro?.takeIf { it.isNotBlank() }?.let { "$it." } ?: ""
         val busca = c.busca.joinToString(" OR ") { "UPPER($it) LIKE :termo" }
         val onde = when {
