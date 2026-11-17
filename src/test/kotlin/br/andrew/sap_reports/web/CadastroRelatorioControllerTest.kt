@@ -43,10 +43,11 @@ class CadastroRelatorioControllerTest {
     // "Vendas por cliente" e publicado para [vendedor, admin].
     private val vendedor = UsuarioAutenticado("ana", "10", setOf("vendedor"), emptySet())
     private val semRelatorio = UsuarioAutenticado("bia", "11", setOf("estoquista"), emptySet())
+    private val autorSemRelatorio = UsuarioAutenticado("caio", "12", setOf("autor"), emptySet())
 
     @BeforeTest
     fun preparar() {
-        val properties = ReportProperties()
+        val properties = ReportProperties(authorRole = "autor")
         val (repository, _) = repositorioDeTeste()
         val reports = ReportService(repository, ReportUploadValidator(properties), DefinitionParser())
         val odbc = OdbcClient(OdbcProperties(baseUrl = servidor.baseUrl()))
@@ -63,7 +64,7 @@ class CadastroRelatorioControllerTest {
         reports.publicar(reports.criar(UploadRequest(exemplo.definicao, exemplo.template), "autor").id, 1, "autor")
 
         mvc = MockMvcBuilders.standaloneSetup(
-            CadastroRelatorioController(CadastrosRelatorio(odbc, properties), reports),
+            CadastroRelatorioController(CadastrosRelatorio(odbc, properties), reports, properties),
             ConsumerReportController(reports, renderer, execucoes),
         ).setControllerAdvice(ApiExceptionHandler()).build()
 
@@ -122,5 +123,11 @@ class CadastroRelatorioControllerTest {
             jsonPath("$.erro") { value("proibido") }
         }
         servidor.verify(0, postRequestedFor(anyUrl()))
+    }
+
+    @Test
+    fun `autor sem relatorio publicado busca para o preview do rascunho`() {
+        mvc.get("/api/v1/relatorios/cadastros/item") { principal = autorSemRelatorio }
+            .andExpect { status { isOk() } }
     }
 }

@@ -89,7 +89,7 @@ Cadastros: `filial`, `vendedor`, `condicao_pagamento` (`GroupNum`, `-1` = À vis
 
 Use `IN (:filiais)` no SQL. Opcional sem seleção envia null, que não significa “todos”.
 Não envie objetos do cadastro, arrays vazios ou códigos separados por vírgula.
-Os seletores usam APIs existentes do portal, não há endpoint novo de SQL de opções.
+A busca dos seletores é feita pelo front; não há SQL de opções no YAML.
 
 ## Consumo (qualquer papel com interseção em `papeis[]`)
 
