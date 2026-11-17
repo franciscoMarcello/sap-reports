@@ -17,6 +17,7 @@ import br.andrew.sap_reports.service.RenderService
 import br.andrew.sap_reports.service.ReportService
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.anyUrl
+import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
@@ -91,6 +92,61 @@ class CadastroRelatorioControllerTest {
             postRequestedFor(urlEqualTo("/api/v1/query"))
                 .withRequestBody(matchingJsonPath("$.params.termo", equalTo("%MAURO%"))),
         )
+    }
+
+    private fun responderComProxima() = servidor.stubFor(post(urlEqualTo("/api/v1/query")).willReturn(okJson(
+        """{"columns":[],"rows":[{"CODIGO":"PAC1","NOME":"Pac"}],"rowCount":1,"truncated":true,"elapsedMs":1}""",
+    )))
+
+    @Test
+    fun `com 51a linha o nextLink aponta a proxima pagina`() {
+        responderComProxima()
+        mvc.get("/api/v1/relatorios/cadastros/item") {
+            param("q", "pac")
+            param("pagina", "1")
+            principal = vendedor
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.nextLink") { value("cadastros/item?q=pac&pagina=2") }
+        }
+        servidor.verify(
+            postRequestedFor(urlEqualTo("/api/v1/query"))
+                .withRequestBody(matchingJsonPath("$.sql", containing("OFFSET 50"))),
+        )
+    }
+
+    @Test
+    fun `q com caracteres especiais vai url-encoded no nextLink`() {
+        responderComProxima()
+        mvc.get("/api/v1/relatorios/cadastros/parceiro_negocio") {
+            param("q", "a&b=c d%/ç")
+            principal = vendedor
+        }.andExpect {
+            jsonPath("$.nextLink") { value("cadastros/parceiro_negocio?q=a%26b%3Dc+d%25%2F%C3%A7&pagina=1") }
+        }
+    }
+
+    @Test
+    fun `ultima pagina aceita nao aponta alem`() {
+        responderComProxima()
+        mvc.get("/api/v1/relatorios/cadastros/item") {
+            param("pagina", "200")
+            principal = vendedor
+        }.andExpect { jsonPath("$.nextLink") { value("") } }
+    }
+
+    @Test
+    fun `pagina fora da faixa da 400 sem consultar`() {
+        listOf("-1", "201", "abc").forEach { pagina ->
+            mvc.get("/api/v1/relatorios/cadastros/item") {
+                param("pagina", pagina)
+                principal = vendedor
+            }.andExpect {
+                status { isBadRequest() }
+                jsonPath("$.erro") { value("parametros_invalidos") }
+            }
+        }
+        servidor.verify(0, postRequestedFor(anyUrl()))
     }
 
     @Test

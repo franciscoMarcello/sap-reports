@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
@@ -41,6 +42,7 @@ class ApiExceptionHandler {
             when (ex.statusCode) {
                 HttpStatus.NOT_FOUND -> "nao_encontrado"
                 HttpStatus.FORBIDDEN -> "proibido"
+                HttpStatus.BAD_REQUEST -> "parametros_invalidos"
                 else -> "erro"
             },
             ex.reason ?: "Requisicao recusada.",
@@ -60,6 +62,7 @@ class ApiExceptionHandler {
         FormatoInvalidoException::class,
         MethodArgumentNotValidException::class,
         MissingServletRequestParameterException::class,
+        MethodArgumentTypeMismatchException::class,
     )
     fun requisicaoInvalida(ex: Exception) = ResponseEntity.badRequest().body(
         ErroDto("parametros_invalidos", ex.message ?: "Parametros invalidos."),

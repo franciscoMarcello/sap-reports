@@ -23,20 +23,24 @@ class CadastrosRelatorio(
 ) {
     val tipos: Set<String> = REGISTRO.keys
 
-    /** `null` = tipo desconhecido, sem consulta. */
-    fun buscar(tipo: String, q: String?): List<ItemCadastro>? {
+    /** `null` = tipo desconhecido, sem consulta. [pagina] tem que estar em [PAGINAS]. */
+    fun buscar(tipo: String, q: String?, pagina: Int = 0): PaginaBusca? {
+        require(pagina in PAGINAS) { "Pagina fora de $PAGINAS." }
         val consulta = REGISTRO[tipo] ?: return null
-        val params = mutableMapOf<String, Any?>("termo" to termo(q))
+        val params = mutableMapOf<String, Any?>("termo" to termo(q), "prefixo" to prefixo(q))
         if (consulta.exato) params["exato"] = q?.trim().orEmpty()
-        return odbc.consultar(sql(consulta), params, LIMITE).rows.mapNotNull { linha ->
+        // O SQL pede LIMITE + 1; com maxRows = LIMITE o sap-odbc marca `truncated` quando há próxima página.
+        val resposta = odbc.consultar(sql(consulta, pagina), params, LIMITE)
+        val itens = resposta.rows.mapNotNull { linha ->
             val codigo = if (consulta.numerico) linha["CODIGO"].paraDecimal()?.toInt() else linha["CODIGO"]?.toString()
             codigo?.let { ItemCadastro(it, linha["NOME"]?.toString()) }
         }
+        return PaginaBusca(itens, resposta.truncated)
     }
 
-    internal fun sql(tipo: String): String? = REGISTRO[tipo]?.let(::sql)
+    internal fun sql(tipo: String, pagina: Int = 0): String? = REGISTRO[tipo]?.let { sql(it, pagina) }
 
-    private fun sql(c: Consulta): String {
+    private fun sql(c: Consulta, pagina: Int): String {
         val p = properties.schemaCadastro?.takeIf { it.isNotBlank() }?.let { "$it." } ?: ""
         val busca = c.busca.joinToString(" OR ") { "UPPER($it) LIKE :termo" }
         val onde = when {
@@ -44,25 +48,35 @@ class CadastrosRelatorio(
             c.filtro != null -> "${c.filtro} AND ($busca)"
             else -> busca
         }
-        // DISTINCT: o LEFT JOIN do CRD7 pode repetir o parceiro.
+        // Relevância: código começando pelo termo, depois nome começando, depois o resto.
+        // Código numérico (condição de pagamento, grupo) não entra na busca, então não pesa na ordem.
+        val porCodigo = if (c.numerico) "" else "WHEN UPPER(${c.codigo}) LIKE :prefixo THEN 0 "
+        // DISTINCT: o LEFT JOIN do CRD7 pode repetir o parceiro. "ORDEM" fica no SELECT porque
+        // o HANA só ordena DISTINCT por coluna da lista; o código ignora a coluna.
+        // LIMIT/OFFSET literais: vêm do Int já validado em PAGINAS, nunca de texto do usuário.
         return """
-            SELECT DISTINCT ${c.codigo} AS "CODIGO", ${c.nome} AS "NOME"
+            SELECT DISTINCT ${c.codigo} AS "CODIGO", ${c.nome} AS "NOME",
+                CASE ${porCodigo}WHEN UPPER(${c.nome}) LIKE :prefixo THEN 1 ELSE 2 END AS "ORDEM"
             FROM ${c.tabela(p)}
             WHERE $onde
-            ORDER BY "NOME"
+            ORDER BY "ORDEM", "NOME", "CODIGO"
+            LIMIT ${LIMITE + 1} OFFSET ${pagina * LIMITE}
         """.trimIndent()
     }
 
+    internal fun termo(q: String?): String = preparar(q).let { if (it.isEmpty()) "%" else "%$it%" }
+
+    /** `q` vazio vira "%". */
+    internal fun prefixo(q: String?): String = "${preparar(q)}%"
+
     /** Preparo igual ao `BusinessPartnersService` do sap-service: CPF/CNPJ só dígitos ganha máscara, `*` é coringa. */
-    internal fun termo(q: String?): String {
+    private fun preparar(q: String?): String {
         val limpo = q?.trim().orEmpty()
-        if (limpo.isEmpty()) return "%"
-        val preparado = when {
+        return when {
             limpo.all(Char::isDigit) && limpo.length == 11 -> mascara(limpo, "###.###.###-##")
             limpo.all(Char::isDigit) && limpo.length == 14 -> mascara(limpo, "##.###.###/####-##")
             else -> limpo.replace('*', '%').uppercase(Locale.ROOT)
         }
-        return "%$preparado%"
     }
 
     private fun mascara(digitos: String, molde: String): String {
@@ -81,7 +95,8 @@ class CadastrosRelatorio(
     )
 
     companion object {
-        private const val LIMITE = 50
+        const val LIMITE = 50
+        val PAGINAS = 0..200
 
         private fun parceiro(cardType: Char) = Consulta(
             tabela = { p -> """${p}OCRD T LEFT JOIN ${p}CRD7 D ON D."CardCode" = T."CardCode" AND D."Address" = ''""" },
@@ -139,6 +154,9 @@ class CadastrosRelatorio(
         )
     }
 }
+
+/** [temProxima]: existe ao menos mais uma linha depois desta página. */
+data class PaginaBusca(val itens: List<ItemCadastro>, val temProxima: Boolean)
 
 /** `codigo` é Int em `condicao_pagamento` e `grupo_item`, String nos demais. */
 data class ItemCadastro(val codigo: Any, val nome: String?)

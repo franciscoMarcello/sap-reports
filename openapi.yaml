@@ -88,7 +88,9 @@ paths:
         cadastro continuam nas buscas do sap-service (esta busca nao tem o corte
         de carteira do vendedor nem o filtro de item PAC%).
 
-        Ate 50 linhas, ordenadas pelo nome. `q` vazio traz as primeiras 50.
+        50 linhas por pagina, por relevancia: primeiro codigo comecando pelo
+        termo, depois nome comecando pelo termo, depois o resto; desempate pelo
+        nome. `q` vazio traz as primeiras 50.
         CPF/CNPJ (so digitos) busca parceiro/fornecedor, mas nunca volta na
         resposta. `*` no termo e coringa. Item traz so ativos, ou o codigo exato
         mesmo inativo.
@@ -105,9 +107,13 @@ paths:
           in: query
           description: Termo de busca (codigo, nome ou documento)
           schema: { type: string }
+        - name: pagina
+          in: query
+          description: Pagina a partir de 0 (50 linhas cada). Fora de 0..200 responde 400.
+          schema: { type: integer, minimum: 0, maximum: 200, default: 0 }
       responses:
         '200':
-          description: Pagina unica no formato lido pelo `app-search` do front
+          description: Pagina no formato lido pelo `app-search` do front
           content:
             application/json:
               schema:
@@ -124,11 +130,22 @@ paths:
                           description: Inteiro em `condicao_pagamento` e `grupo_item` (`-1` = A vista); texto nos demais
                           oneOf: [{ type: string }, { type: integer }]
                         nome: { type: string, nullable: true }
-                  nextLink: { type: string, description: 'Sempre vazio: a busca nao pagina' }
+                  nextLink:
+                    type: string
+                    description: |
+                      Proxima pagina, RELATIVA a `/api/v1/relatorios/`
+                      (`cadastros/{tipo}?q=<q url-encoded>&pagina=<n+1>`);
+                      vazio quando nao ha mais linhas.
               example:
                 content:
                   - { codigo: C001, nome: Fazenda Boa Vista }
-                nextLink: ''
+                nextLink: 'cadastros/parceiro_negocio?q=fazenda&pagina=1'
+        '400':
+          description: Pagina fora de 0..200 ou nao inteira
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: parametros_invalidos, mensagem: Pagina deve estar entre 0 e 200. }
         '401': { $ref: '#/components/responses/NaoAutorizado' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
